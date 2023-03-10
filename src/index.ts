@@ -124,7 +124,7 @@ class SnakeGame {
         }
         if (availableCells.length === 0) return false
 
-        const randomIndex = Math.round(Math.random() * availableCells.length - 1)
+        const randomIndex = Math.round(Math.random() * (availableCells.length - 1))
         this.fruitPosition = availableCells[randomIndex]
         this.drawFruit()
         return true
