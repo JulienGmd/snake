@@ -1,9 +1,5 @@
-<script setup lang="ts">
-defineEmits<{ click: (e: MouseEvent) => void }>()
-</script>
-
 <template>
-  <button @click="$emit('click')" class="button">
+  <button class="button">
     <slot></slot>
   </button>
 </template>

@@ -12,12 +12,12 @@ const MAX_TICK_TIME = 300
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
 let bodyPositions: { col: number; row: number }[]
-let fruitPosition = { col: 0, row: 0 }
-let direction = { x: 1, y: 0 }
+let fruitPosition: { col: number; row: number }
+let direction: { x: number; y: number }
 /** Direction that will be applied on next tick */
-let newDirection = { x: 1, y: 0 }
-let tickTime = MAX_TICK_TIME
-let score = 0
+let newDirection: { x: number; y: number }
+let tickTime: number
+let score: number
 const showGameOverModal = ref(false)
 const showWinModal = ref(false)
 
@@ -26,16 +26,27 @@ onMounted(() => {
   ctx = canvas.value.getContext('2d')!
   canvas.value.width = CANVAS_SIZE
   canvas.value.height = CANVAS_SIZE
+  restart()
+})
+
+function restart() {
   const headPos = { col: COLUMNS / 2, row: ROWS / 2 }
   bodyPositions = [
     headPos,
     { col: headPos.col - 1, row: headPos.row },
     { col: headPos.col - 2, row: headPos.row }
   ]
+  fruitPosition = { col: 0, row: 0 }
+  direction = { x: 1, y: 0 }
+  newDirection = { x: 1, y: 0 }
+  tickTime = MAX_TICK_TIME
+  score = 0
+  showGameOverModal.value = false
+  showWinModal.value = false
   spawnFruit()
   document.addEventListener('keydown', (e) => tryChangeDirection(e))
   tick()
-})
+}
 
 function tick() {
   direction = newDirection
@@ -162,10 +173,6 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false) {
     if (ignoreHead && index === 0) return false
     return part.col === col && part.row === row
   })
-}
-
-function restart() {
-  console.log('restart')
 }
 </script>
 
