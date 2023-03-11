@@ -14,6 +14,10 @@ module.exports = {
         DEFAULT: '#fff',
         soft: 'rgba(255, 255, 255, 0.87)',
         fade: 'rgba(235, 235, 235, 0.50)'
+      },
+      green: {
+        DEFAULT: '#22c55e',
+        dark: '#15803d'
       }
     },
     extend: {}

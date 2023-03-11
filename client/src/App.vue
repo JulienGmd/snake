@@ -5,7 +5,7 @@ import SnakeGame from './components/SnakeGame.vue'
 <template>
   <header>header</header>
 
-  <main>
+  <main class="grid flex-1 place-items-center">
     <SnakeGame />
   </main>
 </template>

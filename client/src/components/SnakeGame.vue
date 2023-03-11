@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import ButtonPrimary from './ButtonPrimary.vue'
+import ModalAction from './ModalAction.vue'
 
 const CANVAS_SIZE = 500
 const COLUMNS = 16
@@ -15,6 +17,9 @@ let direction = { x: 1, y: 0 }
 /** Direction that will be applied on next tick */
 let newDirection = { x: 1, y: 0 }
 let tickTime = MAX_TICK_TIME
+let score = 0
+const showGameOverModal = ref(false)
+const showWinModal = ref(false)
 
 onMounted(() => {
   if (!canvas.value) return
@@ -56,21 +61,23 @@ function tick() {
     newHeadPosition.row >= ROWS
   ) {
     // Hit the wall
-    alert('Game Over - Hit the wall')
+    showGameOverModal.value = true
     return
   }
 
   if (isBodyPartAt(newHeadPosition.col, newHeadPosition.row, true)) {
     // Hit the body
-    alert('Game Over - Hit the body')
+    showGameOverModal.value = true
     return
   }
 
   if (bEat) {
+    score++
+
     const bWin = !spawnFruit()
     if (bWin) {
       // Win
-      alert('You win!')
+      showWinModal.value = true
       return
     }
 
@@ -156,16 +163,38 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false) {
     return part.col === col && part.row === row
   })
 }
+
+function restart() {
+  console.log('restart')
+}
 </script>
 
 <template>
-  <canvas ref="canvas" class="canvas"></canvas>
+  <div class="relative">
+    <ModalAction :show="showGameOverModal">
+      <template #title>Défaite</template>
+      <template #content>
+        Score : <span class="font-medium">{{ score }}</span>
+      </template>
+      <template #actions>
+        <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
+      </template>
+    </ModalAction>
+    <ModalAction :show="showWinModal">
+      <template #title>Victoire! 🎉</template>
+      <template #content> Score : {{ score }} </template>
+      <template #actions>
+        <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
+      </template>
+    </ModalAction>
+    <canvas ref="canvas" class="canvas rounded-md shadow-2xl"></canvas>
+  </div>
 </template>
 
 <style scoped>
 .canvas {
   --cell-size: calc(100% / v-bind('COLUMNS'));
-  --tint: rgba(130, 255, 90, 0.96);
+  --tint: theme(colors.green.DEFAULT / 96.5%);
   background-image: linear-gradient(to right, var(--tint), var(--tint)),
     linear-gradient(to right, black 50%, white 50%),
     linear-gradient(to bottom, black 50%, white 50%);
