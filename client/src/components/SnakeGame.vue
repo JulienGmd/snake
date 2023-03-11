@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import ButtonPrimary from './ButtonPrimary.vue'
 import ModalAction from './ModalAction.vue'
+import SnakeTutorial from './SnakeTutorial.vue'
 
 const CANVAS_SIZE = 500
 const COLUMNS = 16
@@ -11,13 +12,15 @@ const MAX_TICK_TIME = 300
 
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
+let playing = false
+let score: number
 let bodyPositions: { col: number; row: number }[]
 let fruitPosition: { col: number; row: number }
 let direction: { x: number; y: number }
 /** Direction that will be applied on next tick */
 let newDirection: { x: number; y: number }
 let tickTime: number
-let score: number
+const showTutorial = ref(true)
 const showGameOverModal = ref(false)
 const showWinModal = ref(false)
 
@@ -30,6 +33,8 @@ onMounted(() => {
 })
 
 function restart() {
+  playing = false
+  score = 0
   const headPos = { col: COLUMNS / 2, row: ROWS / 2 }
   bodyPositions = [
     headPos,
@@ -40,15 +45,23 @@ function restart() {
   direction = { x: 1, y: 0 }
   newDirection = { x: 1, y: 0 }
   tickTime = MAX_TICK_TIME
-  score = 0
+  showTutorial.value = true
   showGameOverModal.value = false
   showWinModal.value = false
+
   spawnFruit()
-  document.addEventListener('keydown', (e) => tryChangeDirection(e))
-  tick()
+  draw()
+  document.addEventListener('keydown', (e) => {
+    const bChangeDirection = tryChangeDirection(e)
+    if (!playing && bChangeDirection) {
+      showTutorial.value = false
+      tick()
+    }
+  })
 }
 
 function tick() {
+  playing = true
   direction = newDirection
 
   const newHeadPosition = {
@@ -73,12 +86,14 @@ function tick() {
   ) {
     // Hit the wall
     showGameOverModal.value = true
+    playing = false
     return
   }
 
   if (isBodyPartAt(newHeadPosition.col, newHeadPosition.row, true)) {
     // Hit the body
     showGameOverModal.value = true
+    playing = false
     return
   }
 
@@ -89,6 +104,7 @@ function tick() {
     if (bWin) {
       // Win
       showWinModal.value = true
+      playing = false
       return
     }
 
@@ -100,12 +116,15 @@ function tick() {
     )
   }
 
-  // Draw
+  draw()
+
+  setTimeout(() => tick(), tickTime)
+}
+
+function draw() {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
   drawBody()
   drawFruit()
-
-  setTimeout(() => tick(), tickTime)
 }
 
 function drawBody() {
@@ -119,25 +138,26 @@ function drawBodyPartAt(col: number, row: number) {
   ctx.fillRect(col * columnSize, row * rowSize, columnSize, rowSize)
 }
 
-function tryChangeDirection(e: KeyboardEvent) {
+function tryChangeDirection(e: KeyboardEvent): Boolean {
   switch (e.key) {
     case 'ArrowUp':
-      if (direction.y === 1) return
+      if (direction.y === 1) return false
       newDirection = { x: 0, y: -1 }
-      break
+      return true
     case 'ArrowDown':
-      if (direction.y === -1) return
+      if (direction.y === -1) return false
       newDirection = { x: 0, y: 1 }
-      break
+      return true
     case 'ArrowLeft':
-      if (direction.x === 1) return
+      if (direction.x === 1) return false
       newDirection = { x: -1, y: 0 }
-      break
+      return true
     case 'ArrowRight':
-      if (direction.x === -1) return
+      if (direction.x === -1) return false
       newDirection = { x: 1, y: 0 }
-      break
+      return true
   }
+  return false
 }
 
 /**
@@ -194,6 +214,7 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false) {
         <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
       </template>
     </ModalAction>
+    <SnakeTutorial v-if="showTutorial" />
     <canvas ref="canvas" class="canvas rounded-md shadow-2xl"></canvas>
   </div>
 </template>
