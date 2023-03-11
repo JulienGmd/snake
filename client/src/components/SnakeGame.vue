@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import gsap from 'gsap'
 import ButtonPrimary from './ButtonPrimary.vue'
 import ModalAction from './ModalAction.vue'
 import SnakeTutorial from './SnakeTutorial.vue'
@@ -22,6 +23,8 @@ let direction: { x: number; y: number }
 /** Direction that will be applied on next tick */
 let newDirection: { x: number; y: number }
 let tickTime: number
+let animatedHeadPos: { x: number; y: number }
+let animatedTailPos: { x: number; y: number }
 const showTutorial = ref(true)
 const showGameOverModal = ref(false)
 const showWinModal = ref(false)
@@ -47,6 +50,8 @@ function restart() {
   direction = { x: 1, y: 0 }
   newDirection = { x: 1, y: 0 }
   tickTime = MAX_TICK_TIME
+  animatedHeadPos = bodyPosToXY(bodyPositions[0])
+  animatedTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
   showTutorial.value = true
   showGameOverModal.value = false
   showWinModal.value = false
@@ -118,6 +123,23 @@ function tick() {
     )
   }
 
+  // Animate head and tail
+  const newHeadPositionPx = bodyPosToXY(newHeadPosition)
+  gsap.to(animatedHeadPos, {
+    x: newHeadPositionPx.x,
+    y: newHeadPositionPx.y,
+    duration: tickTime / 1000,
+    ease: 'none',
+    onUpdate: () => draw()
+  })
+  const newTailPositionPx = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
+  gsap.to(animatedTailPos, {
+    x: newTailPositionPx.x,
+    y: newTailPositionPx.y,
+    duration: tickTime / 1000,
+    ease: 'none'
+  })
+
   draw()
 
   setTimeout(() => tick(), tickTime)
@@ -130,22 +152,47 @@ function draw() {
 }
 
 function drawBody() {
+  const points = bodyPositions
+    .slice(1)
+    .map((bodyPos) => bodyPosToXY(bodyPos))
+    .concat(animatedTailPos)
+
   ctx.beginPath()
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
-  ctx.moveTo(...bodyPosToXY(bodyPositions[0]))
-  for (let i = 1; i < bodyPositions.length; i++) {
-    ctx.lineTo(...bodyPosToXY(bodyPositions[i]))
-    ctx.lineWidth =
-      MAX_SNAKE_WIDTH -
-      (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (bodyPositions.length / (COLUMNS * ROWS))
+  ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
+  for (let i = 0; i < points.length - 1; i++) {
+    ctx.lineWidth = MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (i / (COLUMNS * ROWS))
+    ctx.lineTo(points[i].x, points[i].y)
     ctx.stroke()
   }
+
+  // Eye
+  ctx.fillStyle = 'white'
+  ctx.beginPath()
+  ctx.arc(
+    animatedHeadPos.x + direction.x * 4,
+    animatedHeadPos.y + direction.y * 4,
+    MAX_SNAKE_WIDTH * 0.27,
+    0,
+    Math.PI * 2
+  )
+  ctx.fill()
+  ctx.fillStyle = 'black'
+  ctx.beginPath()
+  ctx.arc(
+    animatedHeadPos.x + direction.x * 7,
+    animatedHeadPos.y + direction.y * 7,
+    MAX_SNAKE_WIDTH * 0.1,
+    0,
+    Math.PI * 2
+  )
+  ctx.fill()
 }
 
-function bodyPosToXY(bodyPos: { col: number; row: number }): [x: number, y: number] {
+function bodyPosToXY(bodyPos: { col: number; row: number }): { x: number; y: number } {
   const colSize = CANVAS_SIZE / COLUMNS
-  return [bodyPos.col * colSize + colSize / 2, bodyPos.row * colSize + colSize / 2]
+  return { x: bodyPos.col * colSize + colSize / 2, y: bodyPos.row * colSize + colSize / 2 }
 }
 
 function tryChangeDirection(e: KeyboardEvent): Boolean {
@@ -174,7 +221,7 @@ function tryChangeDirection(e: KeyboardEvent): Boolean {
  * Spawns a fruit at a random free cell
  * @returns true if fruit was spawned, false if there are no more free cells
  */
-function spawnFruit() {
+function spawnFruit(): Boolean {
   const availableCells = []
   for (let col = 0; col < COLUMNS; col++) {
     for (let row = 0; row < ROWS; row++) {
@@ -198,7 +245,7 @@ function drawFruit() {
   ctx.fillRect(fruitPosition.col * columnSize, fruitPosition.row * rowSize, columnSize, rowSize)
 }
 
-function isBodyPartAt(col: number, row: number, ignoreHead = false) {
+function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
   return bodyPositions.some((part, index) => {
     if (ignoreHead && index === 0) return false
     return part.col === col && part.row === row
