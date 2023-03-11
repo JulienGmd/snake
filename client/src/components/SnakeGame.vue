@@ -2,10 +2,10 @@
 import { onMounted, ref } from 'vue'
 
 const CANVAS_SIZE = 500
-const COLUMNS = 4
-const ROWS = 4
-const MIN_TICK_TIME = 200
-const MAX_TICK_TIME = 400
+const COLUMNS = 16
+const ROWS = 16
+const MIN_TICK_TIME = 100
+const MAX_TICK_TIME = 300
 
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
@@ -159,7 +159,17 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false) {
 </script>
 
 <template>
-  <canvas ref="canvas" style="border: 1px solid #ccc"></canvas>
+  <canvas ref="canvas" class="canvas"></canvas>
 </template>
 
-<style scoped></style>
+<style scoped>
+.canvas {
+  --cell-size: calc(100% / v-bind('COLUMNS'));
+  --tint: rgba(130, 255, 90, 0.96);
+  background-image: linear-gradient(to right, var(--tint), var(--tint)),
+    linear-gradient(to right, black 50%, white 50%),
+    linear-gradient(to bottom, black 50%, white 50%);
+  background-blend-mode: normal, difference, normal;
+  background-size: calc(var(--cell-size) * 2) calc(var(--cell-size) * 2);
+}
+</style>
