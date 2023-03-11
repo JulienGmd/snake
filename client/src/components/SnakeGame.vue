@@ -9,6 +9,8 @@ const COLUMNS = 16
 const ROWS = 16
 const MIN_TICK_TIME = 100
 const MAX_TICK_TIME = 300
+const MIN_SNAKE_WIDTH = 10
+const MAX_SNAKE_WIDTH = 30
 
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
@@ -128,14 +130,22 @@ function draw() {
 }
 
 function drawBody() {
-  bodyPositions.forEach((part) => drawBodyPartAt(part.col, part.row))
+  ctx.beginPath()
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  ctx.moveTo(...bodyPosToXY(bodyPositions[0]))
+  for (let i = 1; i < bodyPositions.length; i++) {
+    ctx.lineTo(...bodyPosToXY(bodyPositions[i]))
+    ctx.lineWidth =
+      MAX_SNAKE_WIDTH -
+      (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (bodyPositions.length / (COLUMNS * ROWS))
+    ctx.stroke()
+  }
 }
 
-function drawBodyPartAt(col: number, row: number) {
-  ctx.fillStyle = 'red'
-  const columnSize = CANVAS_SIZE / COLUMNS
-  const rowSize = CANVAS_SIZE / ROWS
-  ctx.fillRect(col * columnSize, row * rowSize, columnSize, rowSize)
+function bodyPosToXY(bodyPos: { col: number; row: number }): [x: number, y: number] {
+  const colSize = CANVAS_SIZE / COLUMNS
+  return [bodyPos.col * colSize + colSize / 2, bodyPos.row * colSize + colSize / 2]
 }
 
 function tryChangeDirection(e: KeyboardEvent): Boolean {
