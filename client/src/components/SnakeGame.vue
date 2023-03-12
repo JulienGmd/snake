@@ -8,14 +8,14 @@ import SnakeTutorial from './SnakeTutorial.vue'
 const CANVAS_SIZE = 500
 const COLUMNS = 16
 const ROWS = 16
-const MIN_TICK_TIME = 100
+const MIN_TICK_TIME = 120
 const MAX_TICK_TIME = 300
 const MIN_SNAKE_WIDTH = 10
-const MAX_SNAKE_WIDTH = 30
+const MAX_SNAKE_WIDTH = 26
 
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
-let playing = false
+const state = ref<'pre-game' | 'playing' | 'game-over' | 'win'>('pre-game')
 let score: number
 let bodyPositions: { col: number; row: number }[]
 let fruitPosition: { col: number; row: number }
@@ -25,9 +25,6 @@ let newDirection: { x: number; y: number }
 let tickTime: number
 let animatedHeadPos: { x: number; y: number }
 let animatedTailPos: { x: number; y: number }
-const showTutorial = ref(true)
-const showGameOverModal = ref(false)
-const showWinModal = ref(false)
 
 onMounted(() => {
   if (!canvas.value) return
@@ -38,7 +35,7 @@ onMounted(() => {
 })
 
 function restart() {
-  playing = false
+  state.value = 'pre-game'
   score = 0
   const headPos = { col: COLUMNS / 2, row: ROWS / 2 }
   bodyPositions = [
@@ -52,23 +49,19 @@ function restart() {
   tickTime = MAX_TICK_TIME
   animatedHeadPos = bodyPosToXY(bodyPositions[0])
   animatedTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
-  showTutorial.value = true
-  showGameOverModal.value = false
-  showWinModal.value = false
 
   spawnFruit()
-  draw()
+  drawAll()
   document.addEventListener('keydown', (e) => {
     const bChangeDirection = tryChangeDirection(e)
-    if (!playing && bChangeDirection) {
-      showTutorial.value = false
+    if (state.value === 'pre-game' && bChangeDirection) {
       tick()
     }
   })
 }
 
 function tick() {
-  playing = true
+  state.value = 'playing'
   direction = newDirection
 
   const newHeadPosition = {
@@ -92,15 +85,13 @@ function tick() {
     newHeadPosition.row >= ROWS
   ) {
     // Hit the wall
-    showGameOverModal.value = true
-    playing = false
+    state.value = 'game-over'
     return
   }
 
   if (isBodyPartAt(newHeadPosition.col, newHeadPosition.row, true)) {
     // Hit the body
-    showGameOverModal.value = true
-    playing = false
+    state.value = 'game-over'
     return
   }
 
@@ -110,8 +101,7 @@ function tick() {
     const bWin = !spawnFruit()
     if (bWin) {
       // Win
-      showWinModal.value = true
-      playing = false
+      state.value = 'win'
       return
     }
 
@@ -130,7 +120,7 @@ function tick() {
     y: newHeadPositionPx.y,
     duration: tickTime / 1000,
     ease: 'none',
-    onUpdate: () => draw()
+    onUpdate: () => drawAll()
   })
   const newTailPositionPx = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
   gsap.to(animatedTailPos, {
@@ -140,59 +130,64 @@ function tick() {
     ease: 'none'
   })
 
-  draw()
+  drawAll()
 
   setTimeout(() => tick(), tickTime)
 }
 
-function draw() {
+function drawAll() {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
-  drawBody()
+  drawFullBody()
   drawFruit()
 }
 
-function drawBody() {
-  const points = bodyPositions
-    .slice(1)
-    .map((bodyPos) => bodyPosToXY(bodyPos))
-    .concat(animatedTailPos)
-
+function drawFullBody() {
+  // body
   ctx.beginPath()
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
+  ctx.strokeStyle = 'black'
   ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
-  for (let i = 0; i < points.length - 1; i++) {
-    ctx.lineWidth = MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (i / (COLUMNS * ROWS))
+  const points = bodyPositions.map((pos) => bodyPosToXY(pos))
+  // Start from 1 to skip the real head location (which is ahead of the animated head)
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineWidth = getBodyLineWidth(i)
     ctx.lineTo(points[i].x, points[i].y)
     ctx.stroke()
   }
+  ctx.lineTo(animatedTailPos.x, animatedTailPos.y)
+  ctx.stroke()
 
-  // Eye
-  ctx.fillStyle = 'white'
+  // eyes
   ctx.beginPath()
+  ctx.fillStyle = 'white'
   ctx.arc(
-    animatedHeadPos.x + direction.x * 4,
-    animatedHeadPos.y + direction.y * 4,
+    animatedHeadPos.x + direction.x * 3,
+    animatedHeadPos.y + direction.y * 3,
     MAX_SNAKE_WIDTH * 0.27,
     0,
     Math.PI * 2
   )
   ctx.fill()
-  ctx.fillStyle = 'black'
   ctx.beginPath()
+  ctx.fillStyle = 'black'
   ctx.arc(
-    animatedHeadPos.x + direction.x * 7,
-    animatedHeadPos.y + direction.y * 7,
-    MAX_SNAKE_WIDTH * 0.1,
+    animatedHeadPos.x + direction.x * 5,
+    animatedHeadPos.y + direction.y * 5,
+    MAX_SNAKE_WIDTH * 0.15,
     0,
     Math.PI * 2
   )
   ctx.fill()
 }
 
+function getBodyLineWidth(index: number) {
+  return MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (index / (COLUMNS * ROWS))
+}
+
 function bodyPosToXY(bodyPos: { col: number; row: number }): { x: number; y: number } {
-  const colSize = CANVAS_SIZE / COLUMNS
-  return { x: bodyPos.col * colSize + colSize / 2, y: bodyPos.row * colSize + colSize / 2 }
+  const cellSize = CANVAS_SIZE / COLUMNS
+  return { x: bodyPos.col * cellSize + cellSize / 2, y: bodyPos.row * cellSize + cellSize / 2 }
 }
 
 function tryChangeDirection(e: KeyboardEvent): Boolean {
@@ -255,7 +250,7 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
 
 <template>
   <div class="relative">
-    <ModalAction :show="showGameOverModal">
+    <ModalAction :show="state === 'game-over'">
       <template #title>Défaite</template>
       <template #content>
         Score : <span class="font-medium">{{ score }}</span>
@@ -264,14 +259,14 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
         <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
       </template>
     </ModalAction>
-    <ModalAction :show="showWinModal">
+    <ModalAction :show="state === 'win'">
       <template #title>Victoire! 🎉</template>
       <template #content> Score : {{ score }} </template>
       <template #actions>
         <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
       </template>
     </ModalAction>
-    <SnakeTutorial v-if="showTutorial" />
+    <SnakeTutorial v-if="state === 'pre-game'" />
     <canvas ref="canvas" class="canvas rounded-md shadow-2xl"></canvas>
   </div>
 </template>

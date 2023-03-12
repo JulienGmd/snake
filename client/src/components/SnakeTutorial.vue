@@ -10,7 +10,7 @@
             width="32"
             viewBox="0 0 48 48"
           >
-            <path d="m24 30.8-12-12 2.15-2.15L24 26.5l9.85-9.85L36 18.8Z" />
+            <path d="M14.15 30.15 12 28l12-12 12 12-2.15 2.15L24 20.3Z" />
           </svg>
         </div>
         <div class="col-start-1 rounded-md border-2 border-gray bg-gray-dark p-1">
@@ -21,7 +21,7 @@
             width="32"
             viewBox="0 0 48 48"
           >
-            <path d="M14.15 30.15 12 28l12-12 12 12-2.15 2.15L24 20.3Z" />
+            <path d="M28.05 36 16 23.95 28.05 11.9l2.15 2.15-9.9 9.9 9.9 9.9Z" />
           </svg>
         </div>
         <div class="rounded-md border-2 border-gray bg-gray-dark p-1">
@@ -32,7 +32,7 @@
             width="32"
             viewBox="0 0 48 48"
           >
-            <path d="M28.05 36 16 23.95 28.05 11.9l2.15 2.15-9.9 9.9 9.9 9.9Z" />
+            <path d="m24 30.8-12-12 2.15-2.15L24 26.5l9.85-9.85L36 18.8Z" />
           </svg>
         </div>
         <div class="rounded-md border-2 border-gray bg-gray-dark p-1">
