@@ -47,8 +47,8 @@ function restart() {
   direction = { x: 1, y: 0 }
   newDirectionQueue = []
   tickTime = MAX_TICK_TIME
-  animatedHeadPos = bodyPosToXY(bodyPositions[0])
-  animatedTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
+  animatedHeadPos = colRowToXY(bodyPositions[0])
+  animatedTailPos = colRowToXY(bodyPositions[bodyPositions.length - 1])
 
   spawnFruit()
   drawAll()
@@ -117,7 +117,7 @@ function tick() {
   }
 
   // Animate head and tail
-  const newHeadPositionPx = bodyPosToXY(newHeadPosition)
+  const newHeadPositionPx = colRowToXY(newHeadPosition)
   gsap.to(animatedHeadPos, {
     x: newHeadPositionPx.x,
     y: newHeadPositionPx.y,
@@ -125,7 +125,7 @@ function tick() {
     ease: 'none',
     onUpdate: () => drawHeadAndTail()
   })
-  const newTailPositionPx = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
+  const newTailPositionPx = colRowToXY(bodyPositions[bodyPositions.length - 1])
   gsap.to(animatedTailPos, {
     x: newTailPositionPx.x,
     y: newTailPositionPx.y,
@@ -151,7 +151,7 @@ function drawBody() {
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'round'
   ctx.strokeStyle = 'black'
-  const points = bodyPositions.map((pos) => bodyPosToXY(pos))
+  const points = bodyPositions.map((pos) => colRowToXY(pos))
   // Start from 1 to skip the real head location (which is ahead of the animated head)
   ctx.moveTo(points[1].x, points[1].y)
   for (let i = 2; i < points.length; i++) {
@@ -167,7 +167,7 @@ function drawHeadAndTail() {
   const cellSize = CANVAS_SIZE / COLUMNS
 
   // Clear head
-  const neckPos = bodyPosToXY(bodyPositions[1])
+  const neckPos = colRowToXY(bodyPositions[1])
   ctx.clearRect(neckPos.x - cellSize / 2, neckPos.y - cellSize / 2, cellSize, cellSize)
   ctx.clearRect(
     animatedHeadPos.x - cellSize / 2,
@@ -177,7 +177,7 @@ function drawHeadAndTail() {
   )
 
   // Clear Tail
-  const tailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
+  const tailPos = colRowToXY(bodyPositions[bodyPositions.length - 1])
   ctx.clearRect(tailPos.x - cellSize / 2, tailPos.y - cellSize / 2, cellSize, cellSize)
   ctx.clearRect(
     animatedTailPos.x - cellSize / 2,
@@ -195,7 +195,7 @@ function drawHeadAndTail() {
   ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
   ctx.lineTo(neckPos.x, neckPos.y)
   // Fill the remaining gap
-  const beforeNeckPos = bodyPosToXY(bodyPositions[2])
+  const beforeNeckPos = colRowToXY(bodyPositions[2])
   let toX = neckPos.x + (beforeNeckPos.x - neckPos.x) * 0.45 // 0.45 to avoid anti-aliasing artifacts
   let toY = neckPos.y + (beforeNeckPos.y - neckPos.y) * 0.45
   ctx.lineTo(toX, toY)
@@ -210,7 +210,7 @@ function drawHeadAndTail() {
   ctx.moveTo(animatedTailPos.x, animatedTailPos.y)
   ctx.lineTo(tailPos.x, tailPos.y)
   // Fill the remaining gap
-  const beforeTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 2])
+  const beforeTailPos = colRowToXY(bodyPositions[bodyPositions.length - 2])
   toX = tailPos.x + (beforeTailPos.x - tailPos.x) * 0.45 // 0.45 to avoid anti-aliasing artifacts
   toY = tailPos.y + (beforeTailPos.y - tailPos.y) * 0.45
   ctx.lineTo(toX, toY)
@@ -239,16 +239,28 @@ function drawHeadAndTail() {
   ctx.fill()
 }
 
+function drawFruit() {
+  ctx.fillStyle = 'green'
+  const columnSize = CANVAS_SIZE / COLUMNS
+  const rowSize = CANVAS_SIZE / ROWS
+  ctx.fillRect(fruitPosition.col * columnSize, fruitPosition.row * rowSize, columnSize, rowSize)
+}
+
 function getBodyLineWidth(index: number) {
   const maxIndex = Math.max(20, bodyPositions.length)
   return MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (index / maxIndex)
 }
 
-function bodyPosToXY(bodyPos: { col: number; row: number }): { x: number; y: number } {
+/**
+ * Converts a column/row position to a pixel position
+ * @returns The center of the cell in pixels
+ */
+function colRowToXY(colRow: { col: number; row: number }): { x: number; y: number } {
   const cellSize = CANVAS_SIZE / COLUMNS
-  return { x: bodyPos.col * cellSize + cellSize / 2, y: bodyPos.row * cellSize + cellSize / 2 }
+  return { x: colRow.col * cellSize + cellSize / 2, y: colRow.row * cellSize + cellSize / 2 }
 }
 
+/** Adds a new direction to the queue if it's valid */
 function tryChangeDirection(e: KeyboardEvent): Boolean {
   // Limit the queue to 2 elements
   if (newDirectionQueue.length > 2) return false
@@ -295,13 +307,6 @@ function spawnFruit(): Boolean {
   fruitPosition = availableCells[randomIndex]
   drawFruit()
   return true
-}
-
-function drawFruit() {
-  ctx.fillStyle = 'green'
-  const columnSize = CANVAS_SIZE / COLUMNS
-  const rowSize = CANVAS_SIZE / ROWS
-  ctx.fillRect(fruitPosition.col * columnSize, fruitPosition.row * rowSize, columnSize, rowSize)
 }
 
 function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
