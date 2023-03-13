@@ -20,8 +20,8 @@ let score: number
 let bodyPositions: { col: number; row: number }[]
 let fruitPosition: { col: number; row: number }
 let direction: { x: number; y: number }
-/** Direction that will be applied on next tick */
-let newDirection: { x: number; y: number }
+/** Directions that will be applied in order in the next ticks */
+let newDirectionQueue: { x: number; y: number }[]
 let tickTime: number
 let animatedHeadPos: { x: number; y: number }
 let animatedTailPos: { x: number; y: number }
@@ -45,7 +45,7 @@ function restart() {
   ]
   fruitPosition = { col: 0, row: 0 }
   direction = { x: 1, y: 0 }
-  newDirection = { x: 1, y: 0 }
+  newDirectionQueue = []
   tickTime = MAX_TICK_TIME
   animatedHeadPos = bodyPosToXY(bodyPositions[0])
   animatedTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
@@ -62,7 +62,10 @@ function restart() {
 
 function tick() {
   state.value = 'playing'
-  direction = newDirection
+  if (newDirectionQueue[0]) {
+    direction = newDirectionQueue[0]
+    newDirectionQueue.shift()
+  }
 
   const newHeadPosition = {
     col: bodyPositions[0].col + direction.x,
@@ -247,24 +250,29 @@ function bodyPosToXY(bodyPos: { col: number; row: number }): { x: number; y: num
 }
 
 function tryChangeDirection(e: KeyboardEvent): Boolean {
+  // Limit the queue to 2 elements
+  if (newDirectionQueue.length > 2) return false
+
+  const lastDirection = newDirectionQueue[newDirectionQueue.length - 1] || direction
   switch (e.key) {
     case 'ArrowUp':
-      if (direction.y === 1) return false
-      newDirection = { x: 0, y: -1 }
+      if (lastDirection.y === 1) return false
+      newDirectionQueue.push({ x: 0, y: -1 })
       return true
     case 'ArrowDown':
-      if (direction.y === -1) return false
-      newDirection = { x: 0, y: 1 }
+      if (lastDirection.y === -1) return false
+      newDirectionQueue.push({ x: 0, y: 1 })
       return true
     case 'ArrowLeft':
-      if (direction.x === 1) return false
-      newDirection = { x: -1, y: 0 }
+      if (lastDirection.x === 1) return false
+      newDirectionQueue.push({ x: -1, y: 0 })
       return true
     case 'ArrowRight':
-      if (direction.x === -1) return false
-      newDirection = { x: 1, y: 0 }
+      if (lastDirection.x === -1) return false
+      newDirectionQueue.push({ x: 1, y: 0 })
       return true
   }
+
   return false
 }
 
