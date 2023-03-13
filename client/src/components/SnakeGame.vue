@@ -5,12 +5,12 @@ import ButtonPrimary from './ButtonPrimary.vue'
 import ModalAction from './ModalAction.vue'
 import SnakeTutorial from './SnakeTutorial.vue'
 
-const CANVAS_SIZE = 500
-const COLUMNS = 16
-const ROWS = 16
+const CANVAS_SIZE = 480 // Must be a multiple of (COLUMNS / 2)
+const COLUMNS = 12
+const ROWS = COLUMNS
 const MIN_TICK_TIME = 120
-const MAX_TICK_TIME = 300
-const MIN_SNAKE_WIDTH = 10
+const MAX_TICK_TIME = 260
+const MIN_SNAKE_WIDTH = 16
 const MAX_SNAKE_WIDTH = 26
 
 const canvas = ref<HTMLCanvasElement | null>()
@@ -120,7 +120,7 @@ function tick() {
     y: newHeadPositionPx.y,
     duration: tickTime / 1000,
     ease: 'none',
-    onUpdate: () => drawAll()
+    onUpdate: () => drawHeadAndTail()
   })
   const newTailPositionPx = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
   gsap.to(animatedTailPos, {
@@ -137,28 +137,83 @@ function tick() {
 
 function drawAll() {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
-  drawFullBody()
+  drawBody()
+  drawHeadAndTail()
   drawFruit()
 }
 
-function drawFullBody() {
+function drawBody() {
   // body
   ctx.beginPath()
+  ctx.lineCap = 'butt'
   ctx.lineJoin = 'round'
-  ctx.lineCap = 'round'
   ctx.strokeStyle = 'black'
-  ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
   const points = bodyPositions.map((pos) => bodyPosToXY(pos))
   // Start from 1 to skip the real head location (which is ahead of the animated head)
-  for (let i = 1; i < points.length; i++) {
+  ctx.moveTo(points[1].x, points[1].y)
+  for (let i = 2; i < points.length; i++) {
     ctx.lineWidth = getBodyLineWidth(i)
     ctx.lineTo(points[i].x, points[i].y)
     ctx.stroke()
   }
   ctx.lineTo(animatedTailPos.x, animatedTailPos.y)
   ctx.stroke()
+}
 
-  // eyes
+function drawHeadAndTail() {
+  const cellSize = CANVAS_SIZE / COLUMNS
+
+  // Clear head
+  const neckPos = bodyPosToXY(bodyPositions[1])
+  ctx.clearRect(neckPos.x - cellSize / 2, neckPos.y - cellSize / 2, cellSize, cellSize)
+  ctx.clearRect(
+    animatedHeadPos.x - cellSize / 2,
+    animatedHeadPos.y - cellSize / 2,
+    cellSize,
+    cellSize
+  )
+
+  // Clear Tail
+  const tailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 1])
+  ctx.clearRect(tailPos.x - cellSize / 2, tailPos.y - cellSize / 2, cellSize, cellSize)
+  ctx.clearRect(
+    animatedTailPos.x - cellSize / 2,
+    animatedTailPos.y - cellSize / 2,
+    cellSize,
+    cellSize
+  )
+
+  // Head
+  ctx.beginPath()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'black'
+  ctx.lineWidth = getBodyLineWidth(1)
+  ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
+  ctx.lineTo(neckPos.x, neckPos.y)
+  // Fill the remaining gap
+  const beforeNeckPos = bodyPosToXY(bodyPositions[2])
+  let toX = neckPos.x + (beforeNeckPos.x - neckPos.x) * 0.45 // 0.45 to avoid anti-aliasing artifacts
+  let toY = neckPos.y + (beforeNeckPos.y - neckPos.y) * 0.45
+  ctx.lineTo(toX, toY)
+  ctx.stroke()
+
+  // Tail
+  ctx.beginPath()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'black'
+  ctx.lineWidth = getBodyLineWidth(bodyPositions.length - 1)
+  ctx.moveTo(animatedTailPos.x, animatedTailPos.y)
+  ctx.lineTo(tailPos.x, tailPos.y)
+  // Fill the remaining gap
+  const beforeTailPos = bodyPosToXY(bodyPositions[bodyPositions.length - 2])
+  toX = tailPos.x + (beforeTailPos.x - tailPos.x) * 0.45 // 0.45 to avoid anti-aliasing artifacts
+  toY = tailPos.y + (beforeTailPos.y - tailPos.y) * 0.45
+  ctx.lineTo(toX, toY)
+  ctx.stroke()
+
+  // Eyes
   ctx.beginPath()
   ctx.fillStyle = 'white'
   ctx.arc(
@@ -182,7 +237,8 @@ function drawFullBody() {
 }
 
 function getBodyLineWidth(index: number) {
-  return MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (index / (COLUMNS * ROWS))
+  const maxIndex = Math.max(20, bodyPositions.length)
+  return MAX_SNAKE_WIDTH - (MAX_SNAKE_WIDTH - MIN_SNAKE_WIDTH) * (index / maxIndex)
 }
 
 function bodyPosToXY(bodyPos: { col: number; row: number }): { x: number; y: number } {
