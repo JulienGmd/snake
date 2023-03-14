@@ -16,7 +16,7 @@ const MAX_SNAKE_WIDTH = 26
 const canvas = ref<HTMLCanvasElement | null>()
 let ctx: CanvasRenderingContext2D
 const state = ref<'pre-game' | 'playing' | 'game-over' | 'win'>('pre-game')
-let score: number
+const score = ref(0)
 let bodyPositions: { col: number; row: number }[]
 let fruitPosition: { col: number; row: number }
 let direction: { x: number; y: number }
@@ -36,7 +36,7 @@ onMounted(() => {
 
 function restart() {
   state.value = 'pre-game'
-  score = 0
+  score.value = 0
   const headPos = { col: COLUMNS / 2, row: ROWS / 2 }
   bodyPositions = [
     headPos,
@@ -99,7 +99,7 @@ function tick() {
   }
 
   if (bEat) {
-    score++
+    score.value++
 
     const bWin = !spawnFruit()
     if (bWin) {
@@ -335,7 +335,10 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
         <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
       </template>
     </ModalAction>
-    <SnakeTutorial v-if="state === 'pre-game'" />
+    <SnakeTutorial v-show="state === 'pre-game'" />
+    <div v-show="state === 'playing'" class="absolute top-2 right-4 text-xl">
+      Score: {{ score }}
+    </div>
     <canvas ref="canvas" class="canvas rounded-md shadow-2xl"></canvas>
   </div>
 </template>

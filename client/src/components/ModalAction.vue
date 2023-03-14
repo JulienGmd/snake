@@ -4,7 +4,7 @@ defineProps<{ show: boolean }>()
 
 <template>
   <Transition>
-    <div v-if="show" class="absolute inset-0 grid place-items-center bg-gray-dark bg-opacity-50">
+    <div v-show="show" class="absolute inset-0 grid place-items-center bg-gray-dark bg-opacity-50">
       <div class="modal grid justify-items-center rounded-lg bg-gray py-5 px-7 shadow-lg">
         <div class="text-2xl font-medium">
           <slot name="title"></slot>
