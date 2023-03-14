@@ -8,7 +8,7 @@ import SnakeTutorial from './SnakeTutorial.vue'
 const CANVAS_SIZE = 480 // Must be a multiple of (COLUMNS / 2)
 const COLUMNS = 12
 const ROWS = COLUMNS
-const MIN_TICK_TIME = 120
+const MIN_TICK_TIME = 160
 const MAX_TICK_TIME = 260
 const MIN_SNAKE_WIDTH = 16
 const MAX_SNAKE_WIDTH = 26
@@ -150,7 +150,7 @@ function drawBody() {
   ctx.beginPath()
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'round'
-  ctx.strokeStyle = 'black'
+  ctx.strokeStyle = '#2563eb'
   const points = bodyPositions.map((pos) => colRowToXY(pos))
   // Start from 1 to skip the real head location (which is ahead of the animated head)
   ctx.moveTo(points[1].x, points[1].y)
@@ -190,7 +190,7 @@ function drawHeadAndTail() {
   ctx.beginPath()
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  ctx.strokeStyle = 'black'
+  ctx.strokeStyle = '#2563eb'
   ctx.lineWidth = getBodyLineWidth(1)
   ctx.moveTo(animatedHeadPos.x, animatedHeadPos.y)
   ctx.lineTo(neckPos.x, neckPos.y)
@@ -205,7 +205,7 @@ function drawHeadAndTail() {
   ctx.beginPath()
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  ctx.strokeStyle = 'black'
+  ctx.strokeStyle = '#2563eb'
   ctx.lineWidth = getBodyLineWidth(bodyPositions.length - 1)
   ctx.moveTo(animatedTailPos.x, animatedTailPos.y)
   ctx.lineTo(tailPos.x, tailPos.y)
@@ -240,10 +240,18 @@ function drawHeadAndTail() {
 }
 
 function drawFruit() {
-  ctx.fillStyle = 'green'
+  ctx.beginPath()
+  ctx.fillStyle = '#dc2626'
   const columnSize = CANVAS_SIZE / COLUMNS
   const rowSize = CANVAS_SIZE / ROWS
-  ctx.fillRect(fruitPosition.col * columnSize, fruitPosition.row * rowSize, columnSize, rowSize)
+  ctx.arc(
+    fruitPosition.col * columnSize + columnSize / 2,
+    fruitPosition.row * rowSize + rowSize / 2,
+    MAX_SNAKE_WIDTH * 0.6,
+    0,
+    Math.PI * 2
+  )
+  ctx.fill()
 }
 
 function getBodyLineWidth(index: number) {
@@ -268,19 +276,20 @@ function tryChangeDirection(e: KeyboardEvent): Boolean {
   const lastDirection = newDirectionQueue[newDirectionQueue.length - 1] || direction
   switch (e.key) {
     case 'ArrowUp':
-      if (lastDirection.y === 1) return false
+      if (lastDirection.y === -1 || lastDirection.y === 1) return false
       newDirectionQueue.push({ x: 0, y: -1 })
       return true
     case 'ArrowDown':
-      if (lastDirection.y === -1) return false
+      if (lastDirection.y === -1 || lastDirection.y === 1) return false
       newDirectionQueue.push({ x: 0, y: 1 })
       return true
     case 'ArrowLeft':
-      if (lastDirection.x === 1) return false
+      if (lastDirection.x === -1 || lastDirection.x === 1) return false
       newDirectionQueue.push({ x: -1, y: 0 })
       return true
     case 'ArrowRight':
-      if (lastDirection.x === -1) return false
+      if (lastDirection.x === -1 || (state.value !== 'pre-game' && lastDirection.x === 1))
+        return false
       newDirectionQueue.push({ x: 1, y: 0 })
       return true
   }
@@ -330,14 +339,16 @@ function isBodyPartAt(col: number, row: number, ignoreHead = false): Boolean {
     </ModalAction>
     <ModalAction :show="state === 'win'">
       <template #title>Victoire! 🎉</template>
-      <template #content> Score : {{ score }} </template>
+      <template #content>
+        Score : <span class="font-medium">{{ score }}</span>
+      </template>
       <template #actions>
         <ButtonPrimary @click="restart">Rejouer</ButtonPrimary>
       </template>
     </ModalAction>
     <SnakeTutorial v-show="state === 'pre-game'" />
     <div v-show="state === 'playing'" class="absolute top-2 right-4 text-xl">
-      Score: {{ score }}
+      Score : <span class="font-medium">{{ score }}</span>
     </div>
     <canvas ref="canvas" class="canvas rounded-md shadow-2xl"></canvas>
   </div>
